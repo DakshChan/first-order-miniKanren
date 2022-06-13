@@ -13,6 +13,7 @@
   fresh
   conde
   query
+  query/fresh
   run
   run*
 

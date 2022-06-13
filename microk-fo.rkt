@@ -15,6 +15,7 @@
   (struct-out mplus)
   (struct-out bind)
   (struct-out pause)
+  start-shallow
   step
   mature
   mature?)
@@ -48,6 +49,25 @@
                   (pause st g2))))
     ((conj g1 g2)
      (step (bind (pause st g1) g2)))
+    ((relate thunk _)
+     (pause st (thunk)))
+    ((== t1 t2) (state->stream (unify t1 t2 st)))
+    ((=/= t1 t2) (state->stream (disunify t1 t2 st)))
+    ((symbolo t) (state->stream (typify t symbol? st)))
+    ((stringo t) (state->stream (typify t string? st)))
+    ((numbero t) (state->stream (typify t number? st)))
+    ((not-symbolo t) (state->stream (distypify t symbol? st)))
+    ((not-stringo t) (state->stream (distypify t string? st)))
+    ((not-numbero t) (state->stream (distypify t number? st)))))
+
+; behaves the same as `start`, but never makes a call to step
+(define (start-shallow st g)
+  (match g
+    ((disj g1 g2)
+     (mplus (pause st g1)
+            (pause st g2)))
+    ((conj g1 g2)
+     (bind (pause st g1) g2))
     ((relate thunk _)
      (pause st (thunk)))
     ((== t1 t2) (state->stream (unify t1 t2 st)))
