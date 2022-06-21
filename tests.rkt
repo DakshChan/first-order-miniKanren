@@ -1,3 +1,5 @@
+(require "mk-fo.rkt")
+
 (define-relation (appendo xs ys xsys)
   (conde ((== xs '()) (== ys xsys))
          ((fresh (x zs zsys)

@@ -1,8 +1,13 @@
 (define-syntax define-relation
   (syntax-rules ()
     ((_ (name param ...) g ...)
-     (define (name param ...)
-       (relate (lambda () (fresh () g ...)) `(,name name ,param ...))))))
+    (begin
+      (define (relation param ... stx)
+        (relate (lambda () (fresh () g ...)) `() stx))
+      (... (define-syntax (name stx)
+             (syntax-case stx ()
+               ((_ args ...)
+                #`(relation args ... #'#,stx)))))))))
 
 ;; Low-level goals
 (define succeed (== #t #t))
@@ -18,6 +23,47 @@
     ((_)           fail)
     ((_ g)         g)
     ((_ g0 gs ...) (disj g0 (disj* gs ...)))))
+
+;; Primitive goals
+(define-syntax (== stx)
+  (syntax-case stx ()
+    ((_ t1 t2)
+     #`(prim '== (list t1 t2) #'#,stx))))
+
+(define-syntax (=/= stx)
+  (syntax-case stx ()
+    ((_ t1 t2)
+     #`(prim '=/= (list t1 t2) #'#,stx))))
+
+(define-syntax (symbolo stx)
+  (syntax-case stx ()
+    ((_ t)
+     #`(prim 'symbolo (list t) #'#,stx))))
+
+(define-syntax (stringo stx)
+  (syntax-case stx ()
+    ((_ t)
+     #`(prim 'stringo (list t) #'#,stx))))
+
+(define-syntax (numbero stx)
+  (syntax-case stx ()
+    ((_ t)
+     #`(prim 'numbero (list t) #'#,stx))))
+
+(define-syntax (not-symbolo stx)
+  (syntax-case stx ()
+    ((_ t)
+     #`(prim 'not-symbolo (list t) #'#,stx))))
+
+(define-syntax (not-stringo stx)
+  (syntax-case stx ()
+    ((_ t)
+     #`(prim 'not-stringo (list t) #'#,stx))))
+
+(define-syntax (not-numbero stx)
+  (syntax-case stx ()
+    ((_ t)
+     #`(prim 'not-numbero (list t) #'#,stx))))
 
 ;; High level goals
 (define-syntax fresh
@@ -42,6 +88,7 @@
     ((_ (x ...) g0 gs ...)
      (let* ((x (var/fresh 'x)) ...
             (st (car (stream-take #f (pause empty-state (== (list x ...) initial-var)))))
+            (st (clear-state-path st))
             (g (conj* g0 gs ...)))
        (pause st g)))))
 
@@ -54,7 +101,7 @@
 
 (define-syntax run
   (syntax-rules ()
-    ((_ n body ...) (map reify/initial-var (stream-take n (query body ...))))))
+    ((_ n body ...) (map reify/initial-var (stream-take n (query/fresh body ...))))))
 
 (define-syntax run*
   (syntax-rules () ((_ body ...) (run #f body ...))))

@@ -1,25 +1,25 @@
 #lang racket
 (provide
-  ==
-  =/=
-  symbolo
-  numbero
-  stringo
-  not-symbolo
-  not-numbero
-  not-stringo
+ ==
+ =/=
+ symbolo
+ stringo
+ numbero
+ not-symbolo
+ not-stringo
+ not-numbero
 
-  define-relation
-  fresh
-  conde
-  query
-  query/fresh
-  run
-  run*
+ define-relation
+ fresh
+ conde
+ query
+ query/fresh
+ run
+ run*
 
-  stream-take
-  conj*
-  disj*
-  )
+ stream-take
+ conj*
+ disj*
+ )
 (require "microk-fo.rkt")
 (include "mk-syntax.rkt")
