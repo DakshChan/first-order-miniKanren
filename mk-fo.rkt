@@ -19,7 +19,7 @@
 
  stream-take
  conj*
- disj*
- )
+ disj*)
+
 (require "microk-fo.rkt")
 (include "mk-syntax.rkt")

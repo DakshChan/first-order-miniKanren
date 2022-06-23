@@ -90,7 +90,9 @@
             (st (car (stream-take #f (pause empty-state (== (list x ...) initial-var)))))
             (st (clear-state-path st))
             (g (conj* g0 gs ...)))
-       (pause st g)))))
+       (begin
+         (pp-map-reset)
+         (pause st g))))))
 
 (define (stream-take n s)
   (if (eqv? 0 n) '()
