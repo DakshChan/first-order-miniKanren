@@ -8,6 +8,7 @@
  (struct-out mplus)
  (struct-out bind)
  (struct-out pause)
+ (struct-out pop)
  pp-map
  pp-map-reset
  pp-map-add
@@ -36,6 +37,7 @@
 (struct bind     (s g)                    #:prefab)
 (struct mplus    (s1 s2)                  #:prefab)
 (struct pause    (st g)                   #:prefab)
+(struct pop      ()                       #:prefab)
 
 (define (mature? s) (or (not s) (pair? s)))
 (define (mature s)
@@ -51,7 +53,18 @@
     ((relate thunk _ stx)
      (begin
        (pp-map-add stx)
-       (pause (extend-state-path st stx) (thunk))))
+;       (println "Adding syntax to stack...")
+;       (printf "~s -> ~s\n"
+;               (map (lambda (stx) (syntax->datum stx)) (state-stack st))
+;               (map (lambda (stx) (syntax->datum stx)) (cons stx (state-stack st))))
+       (pause (extend-state-path/stack st stx) (conj (thunk) (pop)))))
+    ((pop)
+     (begin
+;       (println "Popping syntax from stack...")
+;       (printf "~s -> ~s\n"
+;               (map (lambda (stx) (syntax->datum stx)) (state-stack st))
+;               (map (lambda (stx) (syntax->datum stx)) (cdr (state-stack st))))
+       `(,(pop-state-stack st) . #f)))
     ((prim type ts stx)
      (begin
        (pp-map-add stx)
