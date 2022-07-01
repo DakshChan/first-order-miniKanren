@@ -87,23 +87,29 @@
   (syntax-rules ()
     ((_ (x ...) g0 gs ...)
      (let* ((x (var/fresh 'x)) ...
-            (st (car (stream-take #f (pause empty-state (== (list x ...) initial-var)))))
+            (st (car (stream-take #f 0 (pause empty-state (== (list x ...) initial-var)))))
             (st (clear-state-path st))
             (g (conj* g0 gs ...)))
-       (begin
-         (pp-map-reset)
-         (pause st g))))))
+       (pp-map-reset!)
+       (failed-lst-reset!)
+       (pause st g)))))
 
-(define (stream-take n s)
+(define (stream-take n m s)
   (if (eqv? 0 n) '()
-    (let ((s (mature s)))
+    (let ((s (mature s m)))
       (if (pair? s)
-        (cons (car s) (stream-take (and n (- n 1)) (cdr s)))
+        (cons (car s) (stream-take (and n (- n 1)) m (cdr s)))
         '()))))
 
 (define-syntax run
   (syntax-rules ()
-    ((_ n body ...) (map reify/initial-var (stream-take n (query/fresh body ...))))))
+    ((_ n m body ...) (map reify/initial-var (stream-take n m (query/fresh body ...))))))
 
 (define-syntax run*
-  (syntax-rules () ((_ body ...) (run #f body ...))))
+  (syntax-rules () ((_ body ...) (run #f 0 body ...))))
+
+(define-syntax run*/debug
+  (syntax-rules () ((_ m body ...) (run #f m body ...))))
+
+(define-syntax run*/debug*
+  (syntax-rules () ((_ body ...) (run*/debug #f body ...))))

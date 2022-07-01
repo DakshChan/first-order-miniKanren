@@ -16,6 +16,8 @@
  query/fresh
  run
  run*
+ run*/debug
+ run*/debug*
 
  stream-take
  conj*
