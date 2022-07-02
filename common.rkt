@@ -1,22 +1,25 @@
 #lang racket
 (provide
-  (struct-out var)
-  initial-var
-  var/fresh
-  (struct-out state)
-  empty-state
-  extend-state-path
-  clear-state-path
-  extend-state-path/stack
-  pop-state-stack
-  state->stream
-  unify
-  disunify
-  typify
-  distypify
-  walk*
-  reify
-  reify/initial-var)
+ (struct-out var)
+ initial-var
+ var/fresh
+ (struct-out state)
+ empty-state
+ extend-state-path
+ clear-state-path
+ extend-state-path/stack
+ pop-state-stack
+ state->stream
+ unify
+ disunify
+ typify
+ distypify
+ walk*
+ reify
+ reify/initial-var
+ debug/json)
+
+(require json)
 
 ;; Logic variables
 (struct var (name index) #:prefab)
@@ -46,8 +49,8 @@
         (else      #f)))
 
 (define (var-type-ref t types)
-    (let* ((xt (assf (lambda (x) (var=? t x)) types)))
-      (and xt (cdr xt))))
+  (let* ((xt (assf (lambda (x) (var=? t x)) types)))
+    (and xt (cdr xt))))
 
 (define (extend-sub x t sub)
   (and (not (occurs? x t sub)) `((,x . ,t) . ,sub)))
@@ -206,7 +209,7 @@
 
 (define (reified-index index)
   (string->symbol
-    (string-append "_." (number->string index))))
+   (string-append "_." (number->string index))))
 
 ;; stylizes output state
 ;; 1. substitutes variables with stylized index 
@@ -303,3 +306,107 @@
     ((eq? pred string?) 'not-str)
     ((eq? pred number?) 'not-num)
     (error "Invalid type")))
+
+(define (debug/json sts pp-map failed-lst)
+  (write-json (debug/jsexpr sts pp-map failed-lst)))
+
+(define (debug/jsexpr sts pp-map failed-lst)
+  (let ((solutions (map state/jsexpr sts))
+        (rejected-states (map state/jsexpr failed-lst))
+        (program-points (program-points/jsexpr pp-map)))
+    (hash 'solutions solutions
+          'rejected-states rejected-states
+          'program-points program-points)))
+
+(define (state/jsexpr st)
+  (let ((sub      (map sub/jsexpr     (state-sub st)))
+        (diseq    (map diseq/jsexpr   (state-diseq st)))
+        (types    (map type/jsexpr    (state-types st)))
+        (distypes (map distype/jsexpr (state-distypes st)))
+        (path     (map syntax/jsexpr  (state-path st)))
+        (stack    (map syntax/jsexpr  (state-stack st))))
+    (hash 'sub      sub
+          'diseq    diseq
+          'types    types
+          'distypes distypes
+          'path     path
+          'stack    stack)))
+
+(define (program-points/jsexpr pp-map)
+  (map (lambda (key) (let ((syntax (syntax/jsexpr key))
+                           (count  (hash-ref pp-map key)))
+                       (hash 'syntax syntax
+                             'count  count)))
+       (hash-keys pp-map)))
+
+(define (syntax/jsexpr syntax)
+  (let* ((source   (syntax-source syntax))
+         (source   (cond
+                     ((symbol? source) (symbol->string source))
+                     ((path?   source) (path->string   source))
+                     ((string? source) source)))
+         (line     (syntax-line syntax))
+         (column   (syntax-column syntax))
+         (position (syntax-position syntax))
+         (content  (~s (syntax->datum syntax))))
+    (hash 'source   source
+          'line     line
+          'column   column
+          'position position
+          'content  content)))
+
+(define (sub/jsexpr sub)
+  (let ((t1 (term/jsexpr (car sub)))
+        (t2 (term/jsexpr (cdr sub))))
+    (hash 't1 t1
+          't2 t2)))
+
+(define (diseq/jsexpr diseq)
+  (let ((t1 (term/jsexpr (car diseq)))
+        (t2 (term/jsexpr (cdr diseq))))
+    (hash 't1 t1
+          't2 t2)))
+
+(define (type/jsexpr type)
+  (let ((var  (lvar/jsexpr (car type)))
+        (type (cond
+                ((eqv? (cdr type) number?) "num")
+                ((eqv? (cdr type) symbol?) "sym")
+                ((eqv? (cdr type) string?) "str"))))
+    (hash 'var  var
+          'type type)))
+
+(define (distype/jsexpr distype)
+  (let ((var  (lvar/jsexpr (car distype)))
+        (distype (cond
+                   ((eqv? (cdr distype) number?) "num")
+                   ((eqv? (cdr distype) symbol?) "sym")
+                   ((eqv? (cdr distype) string?) "str"))))
+    (hash 'var     var
+          'distype distype)))
+
+(define (term/jsexpr term)
+  (let* ((type  (cond
+                  ((number? term) "num")
+                  ((string? term) "str")
+                  ((symbol? term) "sym")
+                  ((var?    term) "var")
+                  ((list?   term) "lst")
+                  ((pair?   term) "lst")))
+         (value  (cond
+                   ((eqv? type "num") term)
+                   ((eqv? type "str") term)
+                   ((eqv? type "sym") (symbol->string term))
+                   ((eqv? type "var") (lvar/jsexpr term))
+                   ((eqv? type "lst") (if (list? term)
+                                          (map term/jsexpr term)
+                                          (list (term/jsexpr (car term)) (term/jsexpr (cdr term))))))))
+    (hash 'type  type
+          'value value)))
+
+(define (lvar/jsexpr var)
+  (let* ((var-name (var-name var))
+         (name (if var-name
+                   (symbol->string var-name)
+                   #f)))
+    (hash 'name name)))

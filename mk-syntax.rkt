@@ -113,3 +113,16 @@
 
 (define-syntax run*/debug*
   (syntax-rules () ((_ body ...) (run*/debug #f body ...))))
+
+(define-syntax run/json
+  (syntax-rules ()
+    ((_ n m body ...) (debug/json (stream-take n m (query/fresh body ...)) pp-map failed-lst))))
+
+(define-syntax run*/json
+  (syntax-rules () ((_ body ...) (run/json #f 0 body ...))))
+
+(define-syntax run*/debug/json
+  (syntax-rules () ((_ m body ...) (run/json #f m body ...))))
+
+(define-syntax run*/debug*/json
+  (syntax-rules () ((_ body ...) (run*/debug/json #f body ...))))
